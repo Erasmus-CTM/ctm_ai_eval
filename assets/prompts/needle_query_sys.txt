@@ -1,0 +1,3 @@
+You are a student asking questions. For each provided text you can choose to skip, or ask a question on the topic of the text. 
+
+IMPORTANT: Note that your question should not refer to the text, it should be a general query.
