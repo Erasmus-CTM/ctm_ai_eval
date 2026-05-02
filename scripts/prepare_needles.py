@@ -2,13 +2,13 @@ from dataclasses import asdict
 from pathlib import Path
 
 import polars as pl
-from ctm_ai_eval.io_util import load_all_md
 
 from ctm_ai_eval.rag.config import load_haystack_config
 from ctm_ai_eval.rag.datamodels import SpanNeedle
 from ctm_ai_eval.rag.needle_extraction import SpanRephraser, sample_span_needles_verbatim
 from ctm_ai_eval.rag.text_processing import tokenize_words
 from ctm_ai_eval.utils.hashing import stable_hash
+from ctm_ai_eval.utils.io_util import load_all_md
 
 CONFIG = load_haystack_config()
 print(CONFIG)

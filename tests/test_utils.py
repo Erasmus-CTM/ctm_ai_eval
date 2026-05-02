@@ -1,5 +1,6 @@
 import pytest
-from ctm_ai_eval.misc import infer_model_size
+
+from ctm_ai_eval.utils.misc import infer_model_size
 
 
 def test_infer_model_size():

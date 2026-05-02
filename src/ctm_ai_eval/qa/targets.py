@@ -6,17 +6,10 @@ from pathlib import Path
 from typing import override
 
 import requests
-from pydantic import BaseModel
 
+from ctm_ai_eval.qa.config import ChatTargetConfig
 from ctm_ai_eval.qa.datamodels import ApiEvalResponse
 from ctm_ai_eval.rag.datamodels import HaystackTarget
-
-
-class ChatTargetConfig(BaseModel):
-    model: str
-    system_prompt_id: str
-    temperature: float = 0.0
-    max_tokens: int | None = 512
 
 
 class ApiTarget(ABC):
@@ -36,9 +29,7 @@ class ApiTarget(ABC):
         t0 = time.time()
 
         r = requests.post(
-            f"{self.server_url}/{self.route}",
-            json=payload,
-            headers=headers,
+            f"{self.server_url}/{self.route}", json=payload, headers=headers, timeout=60
         )
         r.raise_for_status()
         latency_ms = int((time.time() - t0) * 1000)
@@ -46,7 +37,8 @@ class ApiTarget(ABC):
         return ApiEvalResponse(
             raw=raw,
             latency_ms=latency_ms,
-            text=raw["choices"][0]["message"]["content"],
+            text=raw["message"]["content"],
+            thinking=raw["message"].get("thinking"),
         )
 
     def _build_messages(self, prompt: str, system_prompt: str | None):
@@ -62,6 +54,8 @@ class ApiTarget(ABC):
             "messages": self._build_messages(prompt, system_prompt),
             "temperature": self.chat_config.temperature,
             "max_tokens": self.chat_config.max_tokens,
+            "think": self.chat_config.think,
+            "stream": False,
         }
 
     @abstractmethod
@@ -69,11 +63,12 @@ class ApiTarget(ABC):
 
 
 @dataclass
-class OpenAIChatTarget(ApiTarget):
+class OllamaChatTarget(ApiTarget):
     chat_config: ChatTargetConfig
     api_key: str = "APIKEY"
-    route: str = "chat/completions"
-    server_url: str = "http://127.0.0.1:11434/v1"
+    # NOTE: api/chat allows some more options than standard OpenAI-V1
+    route: str = "api/chat"
+    server_url: str = "http://127.0.0.1:11434"
 
     def _build_headers(self) -> Mapping[str, str]:
         return {"Authorization": f"Bearer {self.api_key}"}

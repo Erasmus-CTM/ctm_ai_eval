@@ -15,9 +15,9 @@ from ctm_ai_eval.rag.config import HaystackMetricCfg, load_haystack_config
 from ctm_ai_eval.rag.datamodels import Chunker, HaystackTarget, Retriever, SpanNeedle
 from ctm_ai_eval.rag.dummy_retrievers import DummyRetriever, SimpleExactRetriever
 from ctm_ai_eval.rag.metrics import recall_at_k_span, reciprocal_rank_span, soft_reciprocal_rank
-from ctm_ai_eval.rich_print import CONS
 from ctm_ai_eval.utils.hashing import stable_hash
 from ctm_ai_eval.utils.io_util import load_all_md, load_ndjson_generic
+from ctm_ai_eval.utils.rich_print import CONS
 
 NEEDLE_DIR = Path("./tmp/needles")
 

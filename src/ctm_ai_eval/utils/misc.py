@@ -1,3 +1,6 @@
+import subprocess
+
+
 def infer_model_size(name: str) -> int:
     """Get a number (M params) from the name."""
 
@@ -12,3 +15,8 @@ def infer_model_size(name: str) -> int:
 
     msg = "unknown suffix"
     raise ValueError(msg)
+
+
+def get_git_commit() -> str:
+    """Can be useful for cache keys."""
+    return subprocess.check_output(["git", "rev-parse", "HEAD"]).decode().strip()

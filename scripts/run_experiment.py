@@ -9,8 +9,6 @@ For now:
 
 import sys
 
-from ctm_ai_eval.rich_print import CONS
-
 from ctm_ai_eval.qa.eval_runs import qa_compute_metrics
 from ctm_ai_eval.qa.qa_experiment import qa_trace
 from ctm_ai_eval.rag.haystack_experiment import (
@@ -18,6 +16,7 @@ from ctm_ai_eval.rag.haystack_experiment import (
     haystack_chunkers,
     haystack_retrievers,
 )
+from ctm_ai_eval.utils.rich_print import CONS
 
 EXPERIMENTS = {
     # rag experiments: each can vary one or more parameters
@@ -31,7 +30,7 @@ EXPERIMENTS = {
 
 
 def _main():
-    if len(sys.argv) < 2:
+    if len(sys.argv) < 2 or sys.argv[1] not in EXPERIMENTS:
         print(f"please specify an experiment: {list(EXPERIMENTS.keys())}")
         sys.exit(1)
 

@@ -55,6 +55,7 @@ def group_scatter(
             y=y,
             x=x,
             color="model_spec",
+            hover_data="answer",
             trendline="ols" if trendline else None,
         )
         .update_layout(

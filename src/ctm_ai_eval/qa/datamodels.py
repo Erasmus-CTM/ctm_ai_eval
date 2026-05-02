@@ -27,6 +27,7 @@ class ApiEvalResponse(BaseModel):
     raw: dict[str, Any]
     latency_ms: int
     text: str | None
+    thinking: str | None
     # optional, for rag targets
     retrieved: list[RetrievalResult] | None = None
 
@@ -34,7 +35,7 @@ class ApiEvalResponse(BaseModel):
 class EvalTrace(BaseModel):
     """Config and output of a single ezxample in a run."""
 
-    run_id: str
+    trace_id: str
     dataset_name: str
     example_id: str
     server_url: str
@@ -44,6 +45,7 @@ class EvalTrace(BaseModel):
     target_cfg: dict[str, object]
     rag_cfg: dict[str, str] | None
     local_host: str  # Where did the eval run
+    extra_output: dict[str, str | None]
 
 
 class FloatTraceMetric(BaseModel):

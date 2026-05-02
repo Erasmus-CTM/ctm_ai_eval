@@ -17,7 +17,7 @@ DATASET_NAME = "general_qa_python"
 
 JUDGES: list[judges.Judge] = [
     judges.IsConcise(),
-    judges.HumanRatingJudge(),
+    # judges.HumanRatingJudge(),
     judges.LLMJudge("rnj-1:8b", judge_sys_prompt, judge_msg_template),
 ]
 
@@ -45,7 +45,7 @@ def qa_compute_metrics() -> None:
     for judge in JUDGES:
         print(f" --- Judge: {judge.name} ---")
         for i, trace in enumerate(traces):
-            fingerprint = (trace.run_id, trace.example_id, judge.name)
+            fingerprint = (trace.trace_id, trace.example_id, judge.name)
             # skip already computed
             if fingerprint in done_metrics:
                 print(f"ALREADY DONE {fingerprint}")

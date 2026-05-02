@@ -31,7 +31,7 @@ class IsConcise:
 
         return FloatTraceMetric(
             name=self.name,
-            run_id=trace.run_id,
+            run_id=trace.trace_id,
             example_id=trace.example_id,
             # 1 for ok, 0 for too long, -1 for error
             score=-1 if words == 0 else int(words <= self.max_words),
@@ -71,7 +71,7 @@ class HumanRatingJudge:
 
         return FloatTraceMetric(
             name=self.name,
-            run_id=trace.run_id,
+            run_id=trace.trace_id,
             example_id=trace.example_id,
             score=rating,
             metric_config={"user": getpass.getuser()},
@@ -150,7 +150,7 @@ class LLMJudge:
 
         return FloatTraceMetric(
             name=self.name,
-            run_id=trace.run_id,
+            run_id=trace.trace_id,
             example_id=trace.example_id,
             score=score,
             metric_config={

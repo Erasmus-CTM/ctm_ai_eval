@@ -1,15 +1,17 @@
 import tomllib
+from abc import ABC
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Literal
 
 from pydantic import BaseModel, Field, field_serializer, field_validator
 
-from ctm_ai_eval.common_config import LlmConfig
 from ctm_ai_eval.utils.path_util import path_collapse_user
 
 
 class DatasetConfig(BaseModel):
+    """For needle extraction and haystack experiment."""
+
     corpus_path: Path
     max_needles: int
 
@@ -25,9 +27,12 @@ class DatasetConfig(BaseModel):
         return str(path_collapse_user(path))
 
 
-@dataclass
-class TokenizationConfig:
-    type: Literal["words", "sentences", "sentence_windows"]
+class ChunkerConfig(BaseModel):
+    """Should work for most chunkers"""
+
+    type: Literal["word", "sentence", "markdown"]
+    length: int
+    overlap: int
 
 
 @dataclass
@@ -50,10 +55,17 @@ class HaystackMetricCfg(BaseModel):
     k_vals: tuple[int, ...] = (1, 5, 10)
 
 
+@dataclass
+class BasicLlmCfg:
+    model: str
+    temperature: float
+    think: bool
+
+
 class HaystackExperimentConfig(BaseModel):
     dataset: DatasetConfig
 
-    needle_llm: LlmConfig
+    needle_llm: BasicLlmCfg
     targets: RetrievalTargetsCfg
     # optionally specify metric details
     metrics: HaystackMetricCfg = Field(default_factory=HaystackMetricCfg)

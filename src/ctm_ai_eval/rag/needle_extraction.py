@@ -8,15 +8,15 @@ import numpy as np
 import requests
 import tqdm
 
-from ctm_ai_eval.common_config import LlmConfig
 from ctm_ai_eval.rag import text_processing
+from ctm_ai_eval.rag.config import BasicLlmCfg
 from ctm_ai_eval.rag.datamodels import (
     ChunkCoupledNeedle,
     RagChunk,
     SpanNeedle,
     SpanToken,
 )
-from ctm_ai_eval.rich_print import CONS
+from ctm_ai_eval.utils.rich_print import CONS
 
 
 def sample_chunk_needles_verbatim(
@@ -151,7 +151,7 @@ class SpanRephraser:
 
     system_prompt: str
     user_template: str
-    llm: LlmConfig
+    llm: BasicLlmCfg
     chat_url: str = "http://localhost:11434/api/chat"
 
     # ---- public API ----
