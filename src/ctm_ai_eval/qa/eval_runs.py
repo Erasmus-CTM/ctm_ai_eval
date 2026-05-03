@@ -1,38 +1,37 @@
 """Evaluate each run."""
 
-import sys
 from pathlib import Path
 
-from ctm_ai_eval.utils.io_util import append_ndjson, load_list_json_generic, load_ndjson_generic
-
-sys.path.append(".")
-
 from ctm_ai_eval.qa import judges
+from ctm_ai_eval.qa.config import load_qa_config
 from ctm_ai_eval.qa.datamodels import EvalCase, EvalTrace, FloatTraceMetric, QaQuestion
+from ctm_ai_eval.utils.io_util import append_ndjson, load_list_json_generic, load_ndjson_generic
 
 judge_sys_prompt = Path("./assets/prompts/judge_qa_sys.txt").read_text()
 judge_msg_template = Path("./assets/prompts/judge_qa_msg.txt").read_text()
 
-DATASET_NAME = "general_qa_python"
 
 JUDGES: list[judges.Judge] = [
     judges.IsConcise(),
-    # judges.HumanRatingJudge(),
+    judges.HumanRatingJudge(),
     judges.LLMJudge("rnj-1:8b", judge_sys_prompt, judge_msg_template),
 ]
 
 
-def qa_compute_metrics() -> None:
+def qa_compute_metrics(cfg_path: str | None) -> None:
     """Compute metrics for each run."""
+
+    cfg = load_qa_config(cfg_path)
     # load runs and dataset
-    traces_file = Path(f"./tmp/traces/{DATASET_NAME}.ndjson")
-    data_file = Path(f"./assets/data/{DATASET_NAME}.json")
+    dset_name = cfg.dataset_path.stem
+    traces_file = Path(f"./tmp/traces/{dset_name}.ndjson")
     traces = load_ndjson_generic(traces_file, EvalTrace)
-    examples_by_id = {e.example_id: e for e in load_list_json_generic(data_file, QaQuestion)}
+
+    examples_by_id = {e.example_id: e for e in load_list_json_generic(cfg.dataset_path, QaQuestion)}
     print(f"loaded {len(traces)} runs, {len(examples_by_id)} examples")
 
     # where to store results
-    metrics_file = Path(f"./tmp/metrics/{DATASET_NAME}.ndjson")
+    metrics_file = Path(f"./tmp/metrics/{dset_name}.ndjson")
     metrics_file.parent.mkdir(exist_ok=True)
 
     # avoid recomputing done results
@@ -45,6 +44,9 @@ def qa_compute_metrics() -> None:
     for judge in JUDGES:
         print(f" --- Judge: {judge.name} ---")
         for i, trace in enumerate(traces):
+            if isinstance(judge, judges.HumanRatingJudge) and judge.should_skip(i):
+                print(f"Skip {i}.")
+            # perhaps example_id is redundant here, but nice for clarity
             fingerprint = (trace.trace_id, trace.example_id, judge.name)
             # skip already computed
             if fingerprint in done_metrics:
@@ -57,7 +59,3 @@ def qa_compute_metrics() -> None:
             result = judge.evaluate(case)
             # store result
             append_ndjson(metrics_file, [result])
-
-
-if __name__ == "__main__":
-    qa_compute_metrics()

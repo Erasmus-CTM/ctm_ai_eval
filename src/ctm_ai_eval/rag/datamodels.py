@@ -91,7 +91,7 @@ class Chunker(ABC):
 
 
 @dataclass
-class HaystackTarget:
+class RagPipelineTarget:
     loader: Callable[[Path], list[str]]  # how to load a dir of documents
     chunker: Chunker  # strings to chunks with metadata.
     retriever: Retriever  # embedding and retrieval

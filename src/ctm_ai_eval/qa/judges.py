@@ -31,7 +31,7 @@ class IsConcise:
 
         return FloatTraceMetric(
             name=self.name,
-            run_id=trace.trace_id,
+            trace_id=trace.trace_id,
             example_id=trace.example_id,
             # 1 for ok, 0 for too long, -1 for error
             score=-1 if words == 0 else int(words <= self.max_words),
@@ -45,8 +45,9 @@ class HumanRatingJudge:
     """Interactively ask for feedback, or load from cache."""
 
     name: str = "human_rating"
-    cache_path: Path = Path("tmp/human_rating_cache.json")
+    cache_path: Path = field(default=Path("tmp/human_rating_cache.json"))
     _cache: dict[str, float] = field(default_factory=dict, init=False)
+    subsample: int = 4  # only evaluate every n:th
 
     def __post_init__(self) -> None:
         if not self.cache_path.exists():
@@ -65,19 +66,35 @@ class HumanRatingJudge:
         if key in self._cache:
             rating = self._cache[key]
         else:
-            rating = self._ask_user(question, trace.answer)
+            rating = self._ask_user(question, trace.answer, trace.extra_output.get("sources"))
             self._cache[key] = rating
             self.cache_path.write_text(json.dumps(self._cache, indent=2))
 
         return FloatTraceMetric(
             name=self.name,
-            run_id=trace.trace_id,
+            trace_id=trace.trace_id,
             example_id=trace.example_id,
             score=rating,
             metric_config={"user": getpass.getuser()},
         )
 
-    def _ask_user(self, question: QaQuestion, answer: str) -> float:
+    def should_skip(self, trace_idx: int):
+        return trace_idx % self.subsample != 0
+
+    @staticmethod
+    def _get_valid_rating():
+        while True:
+            try:
+                v = float(input("-> rating? [0,1] "))
+                if 0 <= v <= 1:
+                    return v
+                else:
+                    print("Please enter a value between 0 and 1.")
+            except ValueError:
+                print("Invalid input. Please enter a numeric value.")
+
+    def _ask_user(self, question: QaQuestion, answer: str, sources: str | None) -> float:
+        # Clear the terminal for readability
         _ = subprocess.run(
             "cls" if platform.system == "Windows" else "clear",
             check=True,
@@ -86,9 +103,10 @@ class HumanRatingJudge:
         print(f"\n=== Question ===\n{question.to_question_string()}\n")
         print(f"\n=== Expected answer ===\n{question.answer}\n")
         print(f"\n=== Answer ===\n{answer}\n")
+        if sources:
+            print(f"\n=== sources ===\n{sources}\n")
 
-        v = float(input("-> rating? [0,1] "))
-        assert 0 <= v <= 1, "range!"
+        v = self._get_valid_rating()
         return v
 
     def _fingerprint(self, question: QaQuestion, answer: str) -> str:
@@ -150,7 +168,7 @@ class LLMJudge:
 
         return FloatTraceMetric(
             name=self.name,
-            run_id=trace.trace_id,
+            trace_id=trace.trace_id,
             example_id=trace.example_id,
             score=score,
             metric_config={

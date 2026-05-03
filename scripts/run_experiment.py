@@ -8,6 +8,7 @@ For now:
 """
 
 import sys
+from collections.abc import Callable
 
 from ctm_ai_eval.qa.eval_runs import qa_compute_metrics
 from ctm_ai_eval.qa.qa_experiment import qa_trace
@@ -18,7 +19,7 @@ from ctm_ai_eval.rag.haystack_experiment import (
 )
 from ctm_ai_eval.utils.rich_print import CONS
 
-EXPERIMENTS = {
+EXPERIMENTS: dict[str, Callable[[str | None], None]] = {
     # rag experiments: each can vary one or more parameters
     "retrievers": haystack_retrievers,
     "chunkers": haystack_chunkers,
@@ -37,7 +38,12 @@ def _main():
     key = sys.argv[1]
     CONS.print(f"Running experiment: {key}", style="bold black on white", justify="center")
 
-    EXPERIMENTS[key]()
+    if len(sys.argv) == 3:
+        cfg_path = sys.argv[2]
+        print(f"loading cfg from {cfg_path}")
+    else:
+        cfg_path = None
+    EXPERIMENTS[key](cfg_path)
 
 
 if __name__ == "__main__":

@@ -1,5 +1,4 @@
 import tomllib
-from abc import ABC
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Literal
@@ -71,7 +70,10 @@ class HaystackExperimentConfig(BaseModel):
     metrics: HaystackMetricCfg = Field(default_factory=HaystackMetricCfg)
 
 
-def load_haystack_config(path: str = "config_haystack.toml") -> HaystackExperimentConfig:
+def load_haystack_config(path: str | None) -> HaystackExperimentConfig:
+
+    if path is None:
+        path = "config_haystack.toml"
     with open(path, "rb") as f:
         raw = tomllib.load(f)
 

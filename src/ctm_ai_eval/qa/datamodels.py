@@ -29,7 +29,7 @@ class ApiEvalResponse(BaseModel):
     text: str | None
     thinking: str | None
     # optional, for rag targets
-    retrieved: list[RetrievalResult] | None = None
+    sources: str | None = None
 
 
 class EvalTrace(BaseModel):
@@ -50,7 +50,7 @@ class EvalTrace(BaseModel):
 
 class FloatTraceMetric(BaseModel):
     name: str
-    run_id: str
+    trace_id: str
     example_id: str
     score: float
     metric_config: dict[str, int | str | bool]
@@ -59,7 +59,7 @@ class FloatTraceMetric(BaseModel):
     @property
     def fingerprint(self) -> tuple[str, str, str]:
         """Defining inputs. Used to decide if it is already computed."""
-        return (self.run_id, self.example_id, self.name)
+        return (self.trace_id, self.example_id, self.name)
 
 
 @dataclass

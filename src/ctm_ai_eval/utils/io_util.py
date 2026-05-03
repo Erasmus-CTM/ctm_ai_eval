@@ -12,7 +12,6 @@ from ctm_ai_eval.utils.misc import infer_model_size
 def load_all_md(root: Path):
     """Load all .md/.qmd recursively. Sorted by extension and filename"""
     docs = sorted(root.rglob("*.md")) + sorted(root.rglob("*.qmd"))
-    print(f"{len(docs)=}")
 
     return [p.read_text() for p in docs]
 
@@ -70,3 +69,15 @@ def append_ndjson(file: Path, records: Sequence[BaseModel]) -> None:
     with file.open("a") as fout:
         for r in records:
             fout.write(r.model_dump_json() + "\n")
+
+
+def load_all_prompts(prompt_dir: Path):
+    sys_prompts = {p.stem: p.read_text() for p in prompt_dir.glob("chat_system_prompts/*.txt")}
+    user_templates = {p.stem: p.read_text() for p in prompt_dir.glob("user_templates/*.jinja")}
+
+    if not sys_prompts:
+        raise FileNotFoundError("found no system prompts")
+    if not user_templates:
+        raise FileNotFoundError("found no user templates")
+
+    return sys_prompts, user_templates

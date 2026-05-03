@@ -12,7 +12,7 @@ from ctm_ai_eval.rag.ai_retriever import Embedder, FaissRetriever
 from ctm_ai_eval.rag.chunkers.basic_chunking import TokenChunker
 from ctm_ai_eval.rag.chunkers.chunk_markdown import MarkdownChunker
 from ctm_ai_eval.rag.config import HaystackMetricCfg, load_haystack_config
-from ctm_ai_eval.rag.datamodels import Chunker, HaystackTarget, Retriever, SpanNeedle
+from ctm_ai_eval.rag.datamodels import Chunker, RagPipelineTarget, Retriever, SpanNeedle
 from ctm_ai_eval.rag.dummy_retrievers import DummyRetriever, SimpleExactRetriever
 from ctm_ai_eval.rag.metrics import recall_at_k_span, reciprocal_rank_span, soft_reciprocal_rank
 from ctm_ai_eval.utils.hashing import stable_hash
@@ -53,7 +53,7 @@ def _compute_metrics(
 
 def _run_haystack(
     needle_sets: Iterable[tuple[str, list[SpanNeedle]]],
-    targets: list[HaystackTarget],
+    targets: list[RagPipelineTarget],
     corpus_root: Path,
     metrics: HaystackMetricCfg,
     *,
@@ -125,16 +125,16 @@ def _run_haystack(
 
 def _targets_prod(chunkers: Iterable[Chunker], retrievers: Iterable[Retriever]):
     return [
-        HaystackTarget(loader=load_all_md, chunker=c, retriever=r)
+        RagPipelineTarget(loader=load_all_md, chunker=c, retriever=r)
         for (c, r) in itertools.product(chunkers, retrievers)
     ]
 
 
-def haystack_chunk_size():
+def haystack_chunk_size(cfg_path: str | None):
     """Compare chunk sizes.
     - This isn't really informative in terms of rr/recall, since larger chunks are always better.
     """
-    cfg = load_haystack_config()
+    cfg = load_haystack_config(cfg_path)
     retrievers = [DummyRetriever(), FaissRetriever(Embedder("nomic-embed-text"))]
 
     chunkers = [
@@ -155,11 +155,11 @@ def haystack_chunk_size():
     )
 
 
-def haystack_chunkers():
+def haystack_chunkers(cfg_path: str | None):
     """Compare chunk sizes.
     - This isn't really informative in terms of rr/recall, since larger chunks are always(?) better.
     """
-    cfg = load_haystack_config()
+    cfg = load_haystack_config(cfg_path)
     retriever = FaissRetriever(Embedder("nomic-embed-text"))
 
     chunkers = [
@@ -173,7 +173,7 @@ def haystack_chunkers():
         TokenChunker(40, 20, text_processing.tokenize_words),
     ]
 
-    targets = [HaystackTarget(load_all_md, c, retriever) for c in chunkers]
+    targets = [RagPipelineTarget(load_all_md, c, retriever) for c in chunkers]
 
     needle_files = NEEDLE_DIR.glob("*/*.ndjson")
     if not needle_files:
@@ -189,12 +189,12 @@ def haystack_chunkers():
     )
 
 
-def haystack_retrievers():
+def haystack_retrievers(cfg_path: str | None):
     """Compare retrievers.
 
     - Possibly informative, as long asthe same chunking is used for all.
     """
-    cfg = load_haystack_config()
+    cfg = load_haystack_config(cfg_path)
 
     # include baselines and specified embedding models.
     retrievers = [
@@ -205,7 +205,7 @@ def haystack_retrievers():
     # A single chunker
     chunker = TokenChunker(40, 20, text_processing.tokenize_words)
 
-    targets = [HaystackTarget(load_all_md, chunker, r) for r in retrievers]
+    targets = [RagPipelineTarget(load_all_md, chunker, r) for r in retrievers]
 
     needle_files = NEEDLE_DIR.glob("*/*.ndjson")
     if not needle_files:

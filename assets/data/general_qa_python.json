@@ -44,7 +44,7 @@
     "author": "marcus",
     "question": "What does this print?",
     "context": "```\nprint(0 or 1 or 2)\n```",
-    "answer": "1",
+    "answer": "It prints `1` because `or` returns the first truthy value.",
     "source": "python 3.13.3"
   },
   {
@@ -64,6 +64,14 @@
     "source": "python 3.13.3"
   },
   {
+    "example_id": "q9",
+    "author": "gemini",
+    "question": "What is the difference between `[] == []` and `[] is []`?",
+    "context": "",
+    "answer": "`[] == []` is `True` (they have the same value), but `[] is []` is `False` (they are different objects in memory).",
+    "source": "python 3.13.3"
+  },
+  {
     "example_id": "cf1",
     "author": "marcus",
     "question": "Which is immutable, list or tuple?",
@@ -78,5 +86,13 @@
     "context": "",
     "answer": "- by keys: `for k in d.keys()`, or `for k in d`\n- by value: `for v in d.values`\n- by items (key-value pairs), `for item in d.items()`",
     "source": "fuhrer-p54"
+  },
+  {
+    "example_id": "mis1",
+    "author": "gemini",
+    "question": "Whats wrong here?",
+    "context": "```python\nnums = [1, 2, 3]\nresult = nums.append(4)\nprint(result)\n```",
+    "answer": "It prints `None` because the `.append()` method modifies the list in-place and returns `None`.",
+    "source": "python 3.13.3"
   }
 ]

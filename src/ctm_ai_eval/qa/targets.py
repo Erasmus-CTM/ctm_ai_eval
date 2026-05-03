@@ -1,6 +1,6 @@
 import time
 from abc import ABC, abstractmethod
-from collections.abc import Mapping
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import override
@@ -9,11 +9,12 @@ import requests
 
 from ctm_ai_eval.qa.config import ChatTargetConfig
 from ctm_ai_eval.qa.datamodels import ApiEvalResponse
-from ctm_ai_eval.rag.datamodels import HaystackTarget
+from ctm_ai_eval.rag.datamodels import RagPipelineTarget, RetrievalResult
 
 
 class ApiTarget(ABC):
     chat_config: ChatTargetConfig
+    api_key: str = "APIKEY"
     server_url: str
     route: str
 
@@ -48,7 +49,10 @@ class ApiTarget(ABC):
         messages.append({"role": "user", "content": prompt})
         return messages
 
-    def _build_payload(self, prompt: str, system_prompt: str | None) -> dict[str, object]:
+    def build_headers(self) -> Mapping[str, str]:
+        return {"Authorization": f"Bearer {self.api_key}"}
+
+    def build_payload(self, prompt: str, system_prompt: str | None) -> dict[str, object]:
         return {
             "model": self.chat_config.model,
             "messages": self._build_messages(prompt, system_prompt),
@@ -59,54 +63,83 @@ class ApiTarget(ABC):
         }
 
     @abstractmethod
-    def ask(self, prompt: str, system_prompt: str | None) -> ApiEvalResponse: ...
+    def ask(
+        self, question: str, system_prompt: str | None, user_template: str
+    ) -> ApiEvalResponse: ...
 
 
 @dataclass
 class OllamaChatTarget(ApiTarget):
     chat_config: ChatTargetConfig
-    api_key: str = "APIKEY"
     # NOTE: api/chat allows some more options than standard OpenAI-V1
     route: str = "api/chat"
     server_url: str = "http://127.0.0.1:11434"
 
-    def _build_headers(self) -> Mapping[str, str]:
-        return {"Authorization": f"Bearer {self.api_key}"}
-
     @override
-    def ask(self, prompt: str, system_prompt: str | None) -> ApiEvalResponse:
-        return self._ask(self._build_payload(prompt, system_prompt), self._build_headers())
+    def ask(self, question: str, system_prompt: str | None, user_template: str) -> ApiEvalResponse:
+        return self._ask(self.build_payload(question, system_prompt), self.build_headers())
 
 
 @dataclass
 class RagApiTarget(ApiTarget):
     chat_config: ChatTargetConfig
-    haystack: HaystackTarget
+    rag: RagPipelineTarget
     docs_dir: Path
     top_k: int = 5
     api_key: str = "APIKEY"
-    route: str = "chat/completions"
-    server_url: str = "http://127.0.0.1:11434/v1"
+    route: str = "api/chat"
+    server_url: str = "http://127.0.0.1:11434"
 
     _ingested: bool = field(default=False, init=False, repr=False)
 
-    def _build_headers(self) -> Mapping[str, str]:
-        return {"Authorization": f"Bearer {self.api_key}"}
+    @override
+    def __str__(self) -> str:
+        return f"RAG({self.chat_config.model}, {self.rag.fingerprint_tuple}, {self.docs_dir.stem})"
 
-    def ensure_ingested(self) -> None:
+    def ensure_ingested(self, *, verbose: bool = False) -> None:
         if self._ingested:
             return
-        docs = self.haystack.loader(self.docs_dir)
-        chunks = self.haystack.chunker(docs)
-        self.haystack.retriever.ingest(chunks)
+        docs = self.rag.loader(self.docs_dir)
+        chunks = self.rag.chunker(docs)
+        self.rag.retriever.ingest(chunks)
         self._ingested = True
+        if verbose:
+            print("ingested!")
+            print(self.rag.retriever.chunks)
+
+    def render_source_blocks(self, hits: Iterable[RetrievalResult]):
+        """
+        Build:
+        - blocks: text blocks inserted into the LLM prompt
+        """
+        blocks: list[str] = []
+
+        for i, h in enumerate(hits, start=1):
+            tag = f"[S{i}]"
+            txt = (h.chunk.text or "").strip()
+            blocks.append(f"{tag}\n{txt}\n")
+
+        return blocks
+
+    def augment_prompt(self, retrieved: list[RetrievalResult], question: str, rag_template: str):
+        """Put chunks and question together.
+        RAG-specific prompt engineering goes here (or in sys prompt).
+        """
+
+        sources = "\n\n---\n\n".join(self.render_source_blocks(retrieved))
+
+        return rag_template.format(sources=sources, question=question)
 
     @override
-    def ask(self, prompt: str, system_prompt: str | None) -> ApiEvalResponse:
+    def ask(self, question: str, system_prompt: str | None, user_template: str) -> ApiEvalResponse:
         self.ensure_ingested()
-        chunks = self.haystack.retriever(prompt, k=self.top_k)
-        context = "\n\n---\n\n".join(c.chunk.text for c in chunks)
-        augmented = f"Context:\n{context}\n\nQuestion:\n{prompt}"
-        res = self._ask(self._build_payload(augmented, system_prompt), self._build_headers())
-        res.retrieved = chunks
+        retrieved = self.rag.retriever(question, k=self.top_k)
+
+        res = self._ask(
+            self.build_payload(
+                self.augment_prompt(retrieved, question, user_template), system_prompt
+            ),
+            self.build_headers(),
+        )
+        res.sources = "\n\n".join(self.render_source_blocks(retrieved))
         return res
