@@ -23,6 +23,7 @@ dependencies = [
 [dependency-groups]
 dev = ["import-linter[ui]>=2.11", "pytest>=9.0.3"]
 
+
 [tool.uv]
 package = true
 

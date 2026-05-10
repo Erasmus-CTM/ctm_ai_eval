@@ -36,9 +36,15 @@ Needs a QA-dataset. Currently a small dataset is available in `assets/data`. Opt
 
 - Current limitation: there is no rag-friendly prompt engineering. 
 
+
+
 ## Future improvements?
 
 - Try other document loaders than `load_all_md()` (e.g. PDF.)
 - Adapter for using a larger dataset (e.g. CS1QA)
 - Prompt optimization: It would be interesting to for instance try the GEPA-approach.
 - Hyperparameter tuning: there are many parameters in the whole pipline. Tuning one or two at a time with optuna would be interesting.
+- RAG is detrimental for general QA questions. many "bad" chunks seem to confuse LLM rather than help. 
+    - Perhaps one could do filtering based on scores? But that means rethinking the notes-only idea. 
+    - Maybe notes only and general questions should be separate (ui/heurstics) we are trying to solve 2 separate problems. 
+

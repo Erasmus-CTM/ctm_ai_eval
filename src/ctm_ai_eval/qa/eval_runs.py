@@ -13,7 +13,7 @@ judge_msg_template = Path("./assets/prompts/judge_qa_msg.txt").read_text()
 
 JUDGES: list[judges.Judge] = [
     judges.IsConcise(),
-    judges.HumanRatingJudge(),
+    judges.HumanRatingJudge(subsample=4),
     judges.LLMJudge("rnj-1:8b", judge_sys_prompt, judge_msg_template),
 ]
 
